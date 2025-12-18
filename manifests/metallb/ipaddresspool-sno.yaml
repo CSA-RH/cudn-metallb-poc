@@ -1,0 +1,12 @@
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: ip-addresspool-sno
+  namespace: metallb-system
+  labels:
+    zone: sno
+spec:
+  addresses:
+    - 10.0.0.5-10.0.0.15
+  autoAssign: true
+  avoidBuggyIPs: false

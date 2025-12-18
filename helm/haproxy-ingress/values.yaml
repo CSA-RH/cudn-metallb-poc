@@ -1,0 +1,35 @@
+controller:
+  config:
+    syslog-server: "address:127.0.0.1, facility: local0, level: notice"
+  extraArgs:
+    - --maps-dir=/etc/haproxy/maps
+  extraVolumeMounts:
+    - mountPath: /etc/haproxy/maps
+      name: haproxymaps
+  extraVolumes:
+    - emptyDir: {}
+      name: haproxymaps
+  replicaCount: 1
+  securityContext:
+    runAsGroup: 0
+    runAsUser: 0
+  service:
+    type: LoadBalancer
+    annotations:
+      metallb.io/address-pool: ip-addresspool-sno
+    ports:
+      http: 80
+      https: 443
+    targetPorts:
+      http: 8080
+      https: 8443
+  serviceAccount:
+    create: false
+    name: haproxy-ingress
+
+defaultBackend:
+  enabled: true
+
+serviceAccount:
+  create: false
+  name: haproxy-ingress

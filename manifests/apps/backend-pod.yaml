@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: backend
+  namespace: cudn-demo
+  annotations:
+    k8s.ovn.org/open-default-ports: |
+      - protocol: tcp
+        port: 8080
+spec:
+  containers:
+  - name: backend
+    image: nicolaka/netshoot:latest
+    command: ["sh","-lc"]
+    args:
+      - |
+        python3 -m http.server 8080
+    ports:
+    - containerPort: 8080

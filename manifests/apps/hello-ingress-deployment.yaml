@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-ingress
+  namespace: cudn-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello-ingress
+  template:
+    metadata:
+      labels:
+        app: hello-ingress
+    spec:
+      containers:
+      - name: hello-openshift
+        image: openshift/hello-openshift
+        env:
+        - name: RESPONSE
+          value: "Teto"
+        ports:
+        - containerPort: 8080
