@@ -37,6 +37,54 @@ This repository documents a Proof of Concept (PoC) that validates how workloads 
  Application Pod (CUDN Primary IP)
 ```
 
+## Architecture diagram
+
+```mermaid
+flowchart TB
+  %% PoC: CUDN + MetalLB + LoadBalancer + Custom HAProxy Ingress
+
+  %% Underlay
+  U["Underlay client<br/>(Mac / external host)"] -->|HTTP/HTTPS| VIP1["MetalLB VIP<br/>10.0.0.6<br/>haproxy-ingress-kubernetes-ingress"]
+  U -->|HTTP| VIP2["MetalLB VIP<br/>10.0.0.7<br/>Service: hello (LB)"]
+  U -->|"HTTP (optional)"| VIP3["MetalLB VIP<br/>10.0.0.5<br/>Service: ingress (LB)"]
+
+  %% Cluster boundary
+  subgraph OCP["OpenShift Cluster (SNO)<br/>OVN-Kubernetes + CUDN"]
+    direction TB
+
+    subgraph ML["MetalLB (Layer2)"]
+      direction TB
+      Pool["IPAddressPool: ip-addresspool-sno<br/>10.0.0.5-10.0.0.15"]
+      Adv["L2Advertisement<br/>selector: zone=sno"]
+      Pool --> Adv
+    end
+
+    %% HAProxy Ingress
+    subgraph ING["Custom Ingress (HAProxy via Helm)<br/>Namespace: cudn-demo"]
+      direction TB
+      Hsvc["Service: haproxy-ingress-kubernetes-ingress<br/>Type: LoadBalancer<br/>Ports: 80/443"] --> Hpods[HAProxy Ingress Pods]
+    end
+
+    %% Apps / Services
+    subgraph APPS["Workloads on CUDN (Primary Layer3)<br/>Namespace: cudn-demo"]
+      direction TB
+      HelloLB["Service: hello<br/>Type: LoadBalancer<br/>Port: 8080"] --> HelloPods["Deployment: hello<br/>Pods"]
+      InSvc["Service: hello-ingress<br/>Type: ClusterIP<br/>Port: 8080"] --> InPods["Deployment: hello-ingress<br/>Pods"]
+      BackSvc["Service: backend<br/>Type: ClusterIP<br/>Port: 8080"] --> BackPod["Pod: backend<br/>(netshoot HTTP server)"]
+      Ext["Service: hello-external<br/>Type: ExternalName<br/>→ hello-ingress.cudn-demo.svc.cluster.local"]
+    end
+
+    %% Traffic routing paths
+    Hpods -->|routes to upstream| InSvc
+    Hpods -->|"routes to upstream (optional)"| BackSvc
+
+    %% MetalLB VIPs map to services
+    VIP1 --> Hsvc
+    VIP2 --> HelloLB
+    VIP3 --> OptIngress["Service: ingress<br/>Type: LoadBalancer<br/>Port: 8080"]
+  end
+```
+
 ### Key characteristics
 
 - Pods use a **CUDN Layer3 primary network**
