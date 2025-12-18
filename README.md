@@ -66,17 +66,6 @@ Only these services are expected to be reachable from the underlay network.
 
 ---
 
-## Internal Services and Backends
-
-The following services are internal to the cluster and are **not exposed directly**:
-
-- `hello-ingress` – ClusterIP, upstream for the HAProxy ingress
-- `backend` – ClusterIP, backend test service
-
-They are included to make traffic flow reproducible.
-
----
-
 ## MetalLB Configuration
 
 MetalLB is configured in **Layer2 mode** to advertise IPs from the underlay network.
@@ -106,6 +95,13 @@ metallb.io/address-pool: ip-addresspool-sno
 The default OpenShift router is not CUDN-aware.  
 A custom **HAProxy ingress controller** is therefore deployed using Helm.
 
+```
+ $ helm repo add haproxytech https://haproxytech.github.io/helm-charts
+ $ helm repo update
+ $  helm install haproxy-ingress haproxytech/kubernetes-ingress -n cudn-demo -f ./values.yaml
+```
+
+
 Helm configuration is stored under:
 
 ```
@@ -126,14 +122,7 @@ bash helm/haproxy-ingress/install.sh
 
 ### ExternalName Services
 
-`Service` objects of type `ExternalName` were evaluated but not selected as the primary exposure
-mechanism.
-
-Reasons:
-- They provide DNS indirection only
-- They do not participate in traffic forwarding or load balancing
-- They are not CUDN-aware
-- They do not solve north–south connectivity from the underlay
+`Service` objects of type `ExternalName` were evaluated .... [WIP]
 
 ---
 
