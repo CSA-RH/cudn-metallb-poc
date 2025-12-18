@@ -6,11 +6,6 @@ This repository documents a Proof of Concept (PoC) that validates how workloads 
 **OVN-Kubernetes Cluster User Defined Network (CUDN)** can be exposed to an **underlay network
 (10.0.0.0/25)** using **MetalLB** and a **custom HAProxy ingress controller**.
 
-The PoC focuses on **north–south traffic exposure** and intentionally avoids:
-- node-level IP forwarding
-- manual routing configuration on nodes
-- unsupported networking workarounds
-
 ---
 
 ## Environment
