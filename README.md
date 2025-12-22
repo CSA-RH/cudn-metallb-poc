@@ -270,10 +270,10 @@ flowchart TB
     end
 
     subgraph CUDN[CUDN Layer3 Primary Network]
-      Pod[Application Pod\novn-udn1 IP\n172.11.x.x]
+      Pod[Application Pod ovn-udn1 IP 172.11.x.x]
     end
 
-    Router -->|Allowed via\nopen-default-ports| Pod
+    Router -->|Allowed via open-default-ports| Pod
   end
 
   Client --> Router
