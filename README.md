@@ -289,7 +289,7 @@ In this setup:
 - A custom ingress controller is deployed inside the same CUDN
 - Traffic enters the cluster via a `LoadBalancer` service
 
-# Deployment flow
+### Deployment flow
 
 Only as an example, we check the setup with a custom HAProxy ingress controller installed with a Helm Chart. 
 
@@ -342,7 +342,7 @@ Served from an isolated Cluster User Defined Network.
 Removing debug pod ...
 Temporary namespace openshift-debug-gwrd8 was removed.
 ```
-## Architecture diagram
+### Architecture diagram
 
 ```mermaid
 flowchart TB
