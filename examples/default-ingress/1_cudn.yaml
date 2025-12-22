@@ -1,0 +1,14 @@
+apiVersion: k8s.ovn.org/v1
+kind: ClusterUserDefinedNetwork
+metadata:
+  name: cudn-default-ingress
+spec:
+  network:
+    topology: Layer3
+    layer3:
+      role: Primary
+      subnets:
+        - cidr: 172.11.0.0/16
+  namespaceSelector:
+    matchLabels:
+      cudn-network: ingress

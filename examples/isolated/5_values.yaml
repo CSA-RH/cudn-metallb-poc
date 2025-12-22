@@ -1,0 +1,29 @@
+serviceAccount:
+  create: false
+  name: haproxy-ingress
+controller:
+  serviceAccount:
+    create: false
+    name: haproxy-ingress
+  replicaCount: 2
+  securityContext:
+    runAsUser: 0
+    runAsGroup: 0
+  service:
+    type: LoadBalancer
+    ports:
+      http: 80  
+      https: 443
+    targetPorts:
+      http: 8080
+      https: 8443
+  extraArgs:
+    - --maps-dir=/etc/haproxy/maps
+  extraVolumes:
+  - name: haproxymaps
+    emptyDir: {}
+  extraVolumeMounts:
+  - name: haproxymaps
+    mountPath: /etc/haproxy/maps
+defaultBackend:
+  enabled: true

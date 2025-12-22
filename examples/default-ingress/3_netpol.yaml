@@ -1,0 +1,48 @@
+apiVersion: policy.networking.k8s.io/v1alpha1
+kind: AdminNetworkPolicy
+metadata:
+  name: 10-allow-router-egress
+spec:
+  priority: 10 
+ 
+  subject:
+    pods: 
+      namespaceSelector: 
+        matchLabels:
+          kubernetes.io/metadata.name: openshift-ingress
+      podSelector:
+          matchLabels:
+            ingresscontroller.operator.openshift.io/deployment-ingresscontroller: default
+  egress:
+    - name: allow-to-cudn-app
+      action: Allow
+      to:
+        - pods: 
+            namespaceSelector:
+              matchLabels:
+                cudn-network: ingress
+            podSelector:
+              matchLabels:
+                role: frontend
+---
+apiVersion: policy.networking.k8s.io/v1alpha1
+kind: AdminNetworkPolicy
+metadata:
+  name: 20-deny-global-egress-to-cudn
+spec:
+  priority: 20
+  subject:
+    pods: 
+      namespaceSelector: {}
+      podSelector: {}
+  egress:
+    - name: deny-to-cudn-app
+      action: Deny
+      to:
+        - pods:          
+            namespaceSelector:
+              matchLabels:
+                cudn-network: ingress
+            podSelector:
+              matchLabels:
+                role: frontend
