@@ -176,6 +176,15 @@ Served via annotation `k8s.ovn.org/open-default-ports`.
 
 For installing the example, please create the resources one by one, as the CUDN will make the namespace and the pod creation to be a bit delayed. 
 
+Manifests tree:
+```
+examples/default-ingress/
+├── 1_cudn.yaml
+├── 2_namespaces.yaml
+├── 3_netpol.yaml
+└── 4_app.yaml
+```
+
 ```bash
 # Be located at the default-ingress folder
 oc apply -f 1_cudn.yaml
@@ -292,6 +301,16 @@ In this setup:
 ### Deployment flow
 
 Only as an example, we check the setup with a custom HAProxy ingress controller installed with a Helm Chart. 
+
+Manifests tree:
+```
+examples/default-ingress/
+├── 1_cudn.yaml
+├── 2_namespaces.yaml
+├── 3_app.yaml
+└── 4_sa.yaml
+```
+
 
 ```bash
 # Be located at the default-ingress folder
