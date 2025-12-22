@@ -350,7 +350,7 @@ flowchart TB
 
   Client[External Client]
 
-  VIP[LoadBalancer VIP\n(Cloud LB / MetalLB)]
+  VIP[LoadBalancer VIP]
 
   subgraph CLUSTER[OpenShift Cluster]
     direction TB
@@ -358,10 +358,10 @@ flowchart TB
     subgraph CUDN[CUDN Isolated Network]
       direction TB
 
-      IngressSvc[Service\nType: LoadBalancer]
+      IngressSvc[Service Type LoadBalancer]
       IngressPods[HAProxy Ingress Pods]
-      AppSvc[Service\nClusterIP]
-      AppPods[Application Pods\nCUDN IP]
+      AppSvc[Service ClusterIP]
+      AppPods[Application Pods on CUDN]
 
       IngressSvc --> IngressPods
       IngressPods --> AppSvc
