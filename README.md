@@ -161,9 +161,9 @@ bash helm/haproxy-ingress/install.sh
 
 ---
 
-## Alternatives Evaluated
+# Alternatives Evaluated
 
-### Alternative 1: Default Ingress Controller with CUDN Open Ports
+## Alternative 1: Default Ingress Controller with CUDN Open Ports
 
 This alternative evaluates the use of the **cluster default ingress controller**
 to expose workloads running on a ClusterUserDefinedNetwork (CUDN).
@@ -171,7 +171,7 @@ to expose workloads running on a ClusterUserDefinedNetwork (CUDN).
 The application pods are attached to a **CUDN Layer3 primary network**, and traffic
 is allowed from the default ingress controller by using the annotation:
 
-# Cluster default ingress controller 
+### Cluster default ingress controller 
 Served via annotation `k8s.ovn.org/open-default-ports`.
 
 For installing the example, please create the resources one by one, as the CUDN will make the namespace and the pod creation to be a bit delayed. 
@@ -279,7 +279,7 @@ flowchart TB
   Client --> Router
 ```
 
-### Alternative 2: Isolated CUDN with Community HAProxy Ingress Controller
+## Alternative 2: Isolated CUDN with Community HAProxy Ingress Controller
 
 This alternative evaluates a **fully isolated CUDN** combined with a
 **community HAProxy ingress controller** deployed via Helm.
