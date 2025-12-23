@@ -332,11 +332,22 @@ Only as an example, we check the setup with a custom HAProxy ingress controller 
 
 Manifests tree:
 ```
-examples/default-ingress/
+examples/isolated/
+├── 0_1_metallb.yaml
+├── 0_2_metallb-ippool.yaml
 ├── 1_cudn.yaml
-├── 2_namespaces.yaml
-├── 3_app.yaml
-└── 4_sa.yaml
+├── 2_namespace.yaml
+├── 3_apps.yaml
+├── 4_sa.yaml
+├── 5_tls-secrets.yaml
+├── 6_values-aro.yaml
+├── 6_values.yaml
+├── 7_1_ingress-plain.yaml
+├── 7_2_ingress-tls-edge.yaml
+├── 7_3_ingress-tls-passthrough.yaml
+├── ca ─ *
+├── cert-ingress - *
+└── cert-passthrough-workload - *
 ```
 **Initial Cluster Setup**. Navigate to the isolated folder and apply the core networking and application manifests:
 
@@ -456,8 +467,6 @@ flowchart TB
 
   Client --> VIP --> IngressSvc
 ```
-
-
 
 ## Conclusion
 
