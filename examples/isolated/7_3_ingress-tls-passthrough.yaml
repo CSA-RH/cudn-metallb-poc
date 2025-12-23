@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-ssl-svc-cname
+  namespace: net-demo-isolated
+spec:
+  type: ExternalName
+  externalName: nginx-ssl-svc.net-demo-isolated.svc.cluster.local
+  ports:
+    - protocol: TCP
+      port: 443
+      targetPort: 8443
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-ssl-ingress
+  namespace: net-demo-isolated
+  annotations:
+    haproxy.org/ssl-passthrough: "true"
+spec:
+  ingressClassName: haproxy
+  rules:
+    - host: passthrough.meloinvento-isolated.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nginx-ssl-svc-cname
+                port:
+                  number: 443

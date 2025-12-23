@@ -1,0 +1,126 @@
+#
+# App handles plain HTTP requests
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello
+  namespace: net-demo-isolated
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hello-openshift
+  template:
+    metadata:
+      labels:
+        app: hello-openshift
+    spec:
+      containers:
+        - name: hello
+          image: openshift/hello-openshift
+          env: 
+          - name: RESPONSE
+            value: "Served from an isolated Cluster User Defined Network."
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello
+  namespace: net-demo-isolated
+spec:
+  selector:
+    app: hello-openshift
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+#
+# App with TLS termination in the pod. 
+#
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-ssl-config
+  namespace: net-demo-isolated
+data:
+  index.html: "This is a NGINX server for the SSL example."
+  ssl.conf: |
+    server {
+        listen       8443 ssl;
+        server_name  localhost;
+
+        ssl_certificate     /etc/nginx/certs/tls.crt;
+        ssl_certificate_key /etc/nginx/certs/tls.key;
+
+        location / {
+            root   /usr/share/nginx/html;
+            index  index.html index.htm;
+        }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-ssl
+  namespace: net-demo-isolated
+  labels:
+    app: nginx-ssl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-ssl
+  template:
+    metadata:
+      labels:
+        app: nginx-ssl
+    spec:
+      containers:
+        - name: nginx
+          image: registry.access.redhat.com/ubi9/nginx-122:latest
+          command: ["nginx", "-g", "daemon off;"]
+          ports:
+            - containerPort: 8443
+          volumeMounts:
+            # Mount the config explicitly as a file
+            - name: nginx-config
+              mountPath: /opt/app-root/etc/nginx.d/ssl.conf
+              subPath: ssl.conf
+            - name: nginx-config
+              mountPath: /opt/app-root/src/index.html
+              subPath: index.html
+            - name: nginx-config
+              mountPath: /usr/share/nginx/html/index.html
+              subPath: index.html
+            - name: ssl-certs
+              mountPath: /etc/nginx/certs
+              readOnly: true
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: nginx-ssl-config
+            items:
+              - key: ssl.conf
+                path: ssl.conf
+              - key: index.html
+                path: index.html
+        - name: ssl-certs
+          secret:
+            secretName: tls-passthrough-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-ssl-svc
+  namespace: net-demo-isolated
+spec:
+  selector:
+    app: nginx-ssl
+  ports:
+    - protocol: TCP
+      port: 443          
+      targetPort: 8443   

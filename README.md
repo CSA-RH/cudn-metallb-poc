@@ -279,6 +279,11 @@ oc exec -n openshift-ingress $INGRESS_POD \
     -- curl -m 2 -s http://$POD_IP_DEFAULT_NETWORK:8080
 ```
 
+And the expected output: 
+```
+Served via a default Ingress Controller in the default network!
+```
+
 **Test Unauthorized Access (Default Network)**. Attempts to reach the Pod IP directly from other namespaces in the default network should time out, demonstrating the isolation provided by the CUDN.
 ```bash
 # 1. Attempt from the same namespace (but via default network IP)
@@ -333,56 +338,94 @@ examples/default-ingress/
 ├── 3_app.yaml
 └── 4_sa.yaml
 ```
-
+**Initial Cluster Setup**. Navigate to the isolated folder and apply the core networking and application manifests:
 
 ```bash
-# Be located at the default-ingress folder
+cd examples/default-ingress/
+```
+
+Create the CUDN definition: 
+```bash
 oc apply -f 1_cudn.yaml
+```
 
-oc apply -f 2_namespaces.yaml
+Create namespace
+```bash
+oc apply -f 2_namespace.yaml
+```
 
+Create apps and services. It deploys two apps, one with no TLS termination and the other with TLS. 
+```bash
 oc apply -f 3_app.yaml
+```
 
+Creation of the SA and their privileged SCC assignation
+```bash
 oc apply -f 4_sa.yaml
+```
 
+Create TLS certificates for SSL offloading. 
+```bash
+oc apply -f 5_tls-secrets.yaml
+```
+
+Helm chart installation of HAProxy:
+```bash
 helm repo add haproxytech https://haproxytech.github.io/helm-charts
 helm repo update
 helm install haproxy-ingress haproxytech/kubernetes-ingress \
      -n net-demo-isolated \
-     -f ./5_values.yaml \
-     -f ./5_values-aro.yaml
-
-# We create the ingress object via the external name
-oc apply -f 6_ingress.yaml
+     -f ./6_values.yaml
 ```
-Now, we can check from a random node, that we are able to reach the ingress controller via the Load Balancer IP. In this example, this has been tested on ARO, so we need to retrieve the Load Balancer IP and we check from a Random node
+
+Define the Ingress object and an ExternalName service:
+```bash
+oc apply -f 6_1_ingress-plain.yaml
+```
+
+On cloud platforms like Azure Red Hat OpenShift (ARO), the HAProxy service will be assigned an external Load Balancer IP, the additional `6_values-aro.yaml` will set up additional annotations to retrieve the correct IP form the vNET. We can verify connectivity by spoofing the Host header from a debug pod.
 
 ```bash
-LOAD_BALANCER_IP=$(oc get svc \
-        -n net-demo-isolated haproxy-ingress-kubernetes-ingress \
-        -ojsonpath='{.status.loadBalancer.ingress[0].ip}')
+# Retrieve the External Load Balancer IP
+LOAD_BALANCER_IP=$(oc get svc -n net-demo-isolated haproxy-ingress \
+    -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
-RANDOM_NODE_INDEX=$(( RANDOM % 6 ))
-TEST_NODE=$(oc get node \
-        -ojsonpath={.items\[$RANDOM_NODE\].metadata.name})
-
-# Check how to access the cluster 
-oc debug node/$TEST_NODE \
-        -- curl -s -m 2 -H "Host: ingress.hello.com" $LOAD_BALANCER_IP
+# Test connectivity via a debug pod
+oc debug node/<node-name> -- curl -s -m 2 -H "Host: ingress.hello.com" $LOAD_BALANCER_IP
 ```
 
-The latter will show the served content from the Ingress Controller
-
+Expected output: 
 ```
-(base) ➜  isolated oc debug node/$TEST_NODE \
-        -- curl -s -m 2 -H "Host: ingress.hello.com" $LOAD_BALANCER_IP
-Temporary namespace openshift-debug-gwrd8 is created for debugging node...
-Starting pod/saa-obs-5tvt7-worker-germanywestcentral1-kkfsh-debug-cwxrl ...
-To use host binaries, run `chroot /host`. Instead, if you need to access host namespaces, run `nsenter -a -t 1`.
 Served from an isolated Cluster User Defined Network.
+```
 
-Removing debug pod ...
-Temporary namespace openshift-debug-gwrd8 was removed.
+**Secure Traffic (TLS Termination)**. To test Edge Termination, apply the TLS-enabled ingress resource:
+
+**Create the CA certificate file** (`ca.crt`) using the content of your Private CA to allow the curl client to trust the Ingress Controller's certificate
+
+**Execute the request**. You can either modify `/etc/hosts` or use the `--resolve` flag in curl to map the hostname to the Load Balancer IP.
+
+Option A: Using Resolve (Recommended for testing): 
+```bash
+curl --resolve "hello.apps.meloinvento.com:443:$LOAD_BALANCER_IP" \
+     --cacert ./ca.crt -v https://hello.apps.meloinvento.com
+```
+
+Option B: Modifying /etc/hosts
+```bash
+echo "$LOAD_BALANCER_IP hello.apps.meloinvento.com" >> /etc/hosts
+curl --cacert ./ca.crt -v https://hello.apps.meloinvento.com
+```
+
+Successful Handshake output: 
+```* SSL connection using TLSv1.3 / TLS_AES_256_GCM_SHA384
+* ALPN, server accepted to use h2
+* Server certificate:
+* subject: C=ES; ST=Caribe; L=Macondo; O=ACME; OU=CSA; CN=CSA Demo
+* issuer: C=ES; ST=Caribe; L=Macondo; O=ACME; OU=CSA; CN=PrivateCA for CSA Demos
+* SSL certificate verify ok.
+< HTTP/2 200
+Served from an isolated Cluster User Defined Network.
 ```
 ### Architecture diagram
 

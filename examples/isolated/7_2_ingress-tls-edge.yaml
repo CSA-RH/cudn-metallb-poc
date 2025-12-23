@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-hello-tls-app
+  namespace: net-demo-isolated
+spec:
+  ingressClassName: haproxy
+  tls: 
+  - secretName: tls-ingress-secret
+    hosts: 
+    - hello.apps.meloinvento.com
+  rules:
+  - host: hello.apps.meloinvento.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: hello-cname
+            port:
+              number: 8080
