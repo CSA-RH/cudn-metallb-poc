@@ -391,7 +391,7 @@ helm install haproxy-ingress haproxytech/kubernetes-ingress \
 
 Define the Ingress object and an ExternalName service:
 ```bash
-oc apply -f 6_1_ingress-plain.yaml
+oc apply -f 7_1_ingress-plain.yaml
 ```
 
 On cloud platforms like Azure Red Hat OpenShift (ARO), the HAProxy service will be assigned an external Load Balancer IP, the additional `6_values-aro.yaml` will set up additional annotations to retrieve the correct IP form the vNET. We can verify connectivity by spoofing the Host header from a debug pod.
