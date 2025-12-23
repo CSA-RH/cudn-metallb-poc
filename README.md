@@ -367,7 +367,7 @@ oc apply -f 2_namespace.yaml
 
 Create apps and services. It deploys two apps, one with no TLS termination and the other with TLS. 
 ```bash
-oc apply -f 3_app.yaml
+oc apply -f 3_apps.yaml
 ```
 
 Creation of the SA and their privileged SCC assignation
