@@ -352,7 +352,7 @@ examples/isolated/
 **Initial Cluster Setup**. Navigate to the isolated folder and apply the core networking and application manifests:
 
 ```bash
-cd examples/default-ingress/
+cd examples/isolated/
 ```
 
 Create the CUDN definition: 
