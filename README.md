@@ -213,10 +213,8 @@ Once the application is running, verify that it is being served correctly with T
 
 ```bash
 # Test the route using curl
-curl -s -m 2 \
-  https://$(oc get route \
-    -n net-demo-ingress hello \
-    -ojsonpath='{.spec.host}')
+curl -sk -m 2 \
+  https://$(oc get route -n net-demo-ingress hello -ojsonpath='{.spec.host}')
 ```
 
 **Expected Output**: 
@@ -230,7 +228,7 @@ When inspecting the Pod’s network status, you will notice two interfaces. The 
 oc get pod \
   -n net-demo-ingress \
   -l app=hello-openshift \
-  -o jsonpath='{.items[0].status.annotations.k8s\.v1\.cni\.cncf\.io/network-status}' \
+  -o jsonpath='{.items[0].metadata.annotations.k8s\.v1\.cni\.cncf\.io/network-status}' \
   | jq
 ```
 
