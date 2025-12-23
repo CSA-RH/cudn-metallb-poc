@@ -380,7 +380,7 @@ Create TLS certificates for SSL offloading.
 oc apply -f 5_tls-secrets.yaml
 ```
 
-Helm chart installation of HAProxy:
+Helm chart installation of HAProxy. On cloud platforms like Azure Red Hat OpenShift (ARO), the HAProxy service will be assigned an external Load Balancer IP, the additional `6_values-aro.yaml` will set up additional annotations to retrieve the correct IP form the vNET:
 ```bash
 helm repo add haproxytech https://haproxytech.github.io/helm-charts
 helm repo update
@@ -394,7 +394,7 @@ Define the Ingress object and an ExternalName service:
 oc apply -f 7_1_ingress-plain.yaml
 ```
 
-On cloud platforms like Azure Red Hat OpenShift (ARO), the HAProxy service will be assigned an external Load Balancer IP, the additional `6_values-aro.yaml` will set up additional annotations to retrieve the correct IP form the vNET. We can verify connectivity by spoofing the Host header from a debug pod.
+We can verify connectivity by spoofing the Host header from a debug pod.
 
 ```bash
 # Retrieve the External Load Balancer IP
