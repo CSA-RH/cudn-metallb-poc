@@ -410,34 +410,122 @@ Expected output:
 Served from an isolated Cluster User Defined Network.
 ```
 
-**Secure Traffic (TLS Termination)**. To test Edge Termination, apply the TLS-enabled ingress resource:
-
-**Create the CA certificate file** (`ca.crt`) using the content of your Private CA to allow the curl client to trust the Ingress Controller's certificate
-
-**Execute the request**. You can either modify `/etc/hosts` or use the `--resolve` flag in curl to map the hostname to the Load Balancer IP.
-
-Option A: Using Resolve (Recommended for testing): 
+Create an ingress resource which will make use of the standard certificate
 ```bash
-curl --resolve "hello.apps.meloinvento.com:443:$LOAD_BALANCER_IP" \
-     --cacert ./ca.crt -v https://hello.apps.meloinvento.com
+oc apply -f 7_2_ingress-tls-edge.yaml
 ```
 
-Option B: Modifying /etc/hosts
+In a debug pod, 
 ```bash
-echo "$LOAD_BALANCER_IP hello.apps.meloinvento.com" >> /etc/hosts
+oc debug
+```
+
+create the `ca.crt` file containing the CA used to create the ingress controller certificate
+
+```bash
+cat <<EOF > ca.crt
+-----BEGIN CERTIFICATE-----
+MIIDvzCCAqegAwIBAgIUQIXuftpav/IDCpLjJ70Dhz3jlLQwDQYJKoZIhvcNAQEL
+BQAwbzELMAkGA1UEBhMCRVMxDzANBgNVBAgMBkNhcmliZTEQMA4GA1UEBwwHTWFj
+b25kbzENMAsGA1UECgwEQUNNRTEMMAoGA1UECwwDQ1NBMSAwHgYDVQQDDBdQcml2
+YXRlQ0EgZm9yIENTQSBEZW1vczAeFw0yNDA5MTMxNTU1MTBaFw0yOTA5MTIxNTU1
+MTBaMG8xCzAJBgNVBAYTAkVTMQ8wDQYDVQQIDAZDYXJpYmUxEDAOBgNVBAcMB01h
+Y29uZG8xDTALBgNVBAoMBEFDTUUxDDAKBgNVBAsMA0NTQTEgMB4GA1UEAwwXUHJp
+dmF0ZUNBIGZvciBDU0EgRGVtb3MwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK
+AoIBAQC0te0JhCxqGAbp7loR9uAOu9G1euwvokuWde0tNaYBQv5FDOUsNo05NHTX
+6ppA7J4b2p4QllyDxFs5Q9pot13C2n/PwgQK7T0MCPlT5U+Ao+YzEqx+6uCDjb4a
+q+hMVDWVoD7UihUHYaDYg525fbCSCBzVAOG2b0H4wJ+VBpNTLiHZPi3sFevRykDD
+rToZPj39mVQA8D4dYe8LIKw5FxUKyT3eivRCxDLxtgABFKZWbMPjRAmK5Pd81Gdb
+l+eAL35RHzfK2mrwIfIUyEhSSKKzbDOQuBl7GKFPvL5epIX5TeMKSeIgVbn5BN9M
+gm8orT4QYchd2ik9cAsdWog/Z5oJAgMBAAGjUzBRMB0GA1UdDgQWBBTs+voWWfDh
+z18pmRmVkvbgvK+wOTAfBgNVHSMEGDAWgBTs+voWWfDhz18pmRmVkvbgvK+wOTAP
+BgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQB88ukRxB9vNu+9fvDl
+nUadzG0lLRhlKh114ktx7EX+DjZ2izmncY6P8LZVSNnikoJ54fB1MXyf8CmJ8Eqz
+M/2aMav6O0Z2RMWdimU13ZYq4b9i838FwPd9JRjTRU3587BL5pnhdWkFGSPiexxX
+diih42JkNwvjv37oUdpxLQzE1tvak+YZX/RWPNtB0C92PDljBeih8CrJEJOafSmf
+cbW1XUe4as5t+lZZpiHijHDFTJManAjQPQ396e01RK/pA2G2PV+KNlVtl/7VkAaR
+x9OIoMoG/+uUJ+Px/pmxk8SWVHVqPwa3BR8KTkK0ZLbKkgQGxK12DPNeJRNCZl2Y
+DREo
+-----END CERTIFICATE-----
+EOF
+```
+
+Still in the debug pod, modify the `/etc/hosts` to assign the haproxy-ingress Load Balancer service External IP to the `hello.apps.meloinvento.com` name.
+
+```bash
+echo "__HERE_THE_LOAD_BALANCER_IP__ hello.apps.meloinvento.com"  >> /etc/hosts
+```
+
+Check that we can reach the application with HTTPS:
+
+```bash
 curl --cacert ./ca.crt -v https://hello.apps.meloinvento.com
 ```
 
-Successful Handshake output: 
-```* SSL connection using TLSv1.3 / TLS_AES_256_GCM_SHA384
+EXAMPE: 
+```
+sh-5.1# curl --cacert ./ca.crt -v https://hello.apps.meloinvento.com
+*   Trying 192.168.126.20:443...
+* Connected to hello.apps.meloinvento.com (192.168.126.20) port 443 (#0)
+* ALPN, offering h2
+* ALPN, offering http/1.1
+*  CAfile: ./ca.crt
+* TLSv1.0 (OUT), TLS header, Certificate Status (22):
+* TLSv1.3 (OUT), TLS handshake, Client hello (1):
+* TLSv1.2 (IN), TLS header, Certificate Status (22):
+* TLSv1.3 (IN), TLS handshake, Server hello (2):
+* TLSv1.2 (IN), TLS header, Finished (20):
+* TLSv1.2 (IN), TLS header, Unknown (23):
+* TLSv1.3 (IN), TLS handshake, Encrypted Extensions (8):
+* TLSv1.3 (IN), TLS handshake, Certificate (11):
+* TLSv1.3 (IN), TLS handshake, CERT verify (15):
+* TLSv1.3 (IN), TLS handshake, Finished (20):
+* TLSv1.2 (OUT), TLS header, Finished (20):
+* TLSv1.3 (OUT), TLS change cipher, Change cipher spec (1):
+* TLSv1.2 (OUT), TLS header, Unknown (23):
+* TLSv1.3 (OUT), TLS handshake, Finished (20):
+* SSL connection using TLSv1.3 / TLS_AES_256_GCM_SHA384
 * ALPN, server accepted to use h2
 * Server certificate:
-* subject: C=ES; ST=Caribe; L=Macondo; O=ACME; OU=CSA; CN=CSA Demo
-* issuer: C=ES; ST=Caribe; L=Macondo; O=ACME; OU=CSA; CN=PrivateCA for CSA Demos
-* SSL certificate verify ok.
+*  subject: C=ES; ST=Caribe; L=Macondo; O=ACME; OU=CSA; CN=CSA Demo
+*  start date: Dec 22 13:21:02 2025 GMT
+*  expire date: Mar 26 13:21:02 2028 GMT
+*  subjectAltName: host "hello.apps.meloinvento.com" matched cert's "*.apps.meloinvento.com"
+*  issuer: C=ES; ST=Caribe; L=Macondo; O=ACME; OU=CSA; CN=PrivateCA for CSA Demos
+*  SSL certificate verify ok.
+* Using HTTP2, server supports multi-use
+* Connection state changed (HTTP/2 confirmed)
+* Copying HTTP/2 data in stream buffer to connection buffer after upgrade: len=0
+* TLSv1.2 (OUT), TLS header, Unknown (23):
+* TLSv1.2 (OUT), TLS header, Unknown (23):
+* TLSv1.2 (OUT), TLS header, Unknown (23):
+* Using Stream ID: 1 (easy handle 0xaaaacb05d2a0)
+* TLSv1.2 (OUT), TLS header, Unknown (23):
+> GET / HTTP/2
+> Host: hello.apps.meloinvento.com
+> user-agent: curl/7.76.1
+> accept: */*
+>
+* TLSv1.2 (IN), TLS header, Unknown (23):
+* TLSv1.2 (OUT), TLS header, Unknown (23):
+* TLSv1.2 (IN), TLS header, Unknown (23):
 < HTTP/2 200
+< date: Mon, 22 Dec 2025 17:51:07 GMT
+< content-length: 54
+< content-type: text/plain; charset=utf-8
+< alt-svc: h3=":443";ma=60;
+<
 Served from an isolated Cluster User Defined Network.
+* Connection #0 to host hello.apps.meloinvento.com left intact
 ```
+
+If you don't include the load balancer ip in the /etc/hosts folder, you can opt for the curl sentence: 
+
+```bash
+curl --resolve "hello.apps.meloinvento.com:443:<<<LOAD BALANCER IP>>>" --cacert ./ca.crt  -v https://hello.apps.meloinvento.com
+```
+
+
 ### Architecture diagram
 
 ```mermaid
