@@ -165,16 +165,14 @@ bash helm/haproxy-ingress/install.sh
 
 ## Alternative 1: Default Ingress Controller with CUDN Open Ports
 
-This alternative evaluates the use of the **cluster default ingress controller**
-to expose workloads running on a ClusterUserDefinedNetwork (CUDN).
+This alternative evaluates the use of the **cluster default ingress controller** to expose workloads running on a ClusterUserDefinedNetwork (CUDN).
 
-The application pods are attached to a **CUDN Layer3 primary network**, and traffic
-is allowed from the default ingress controller by using the annotation:
+The application pods are attached to a **CUDN Layer3 primary network**, and traffic is allowed from the default ingress controller by using the annotation:
 
 ### Cluster default ingress controller 
-Served via annotation `k8s.ovn.org/open-default-ports`.
+This is made possible by using the annotation `k8s.ovn.org/open-default-ports`.
 
-For installing the example, please create the resources one by one, as the CUDN will make the namespace and the pod creation to be a bit delayed. 
+Because the CUDN controller needs a moment to initialize the network infrastructure before pods are scheduled, it is recommended to apply the manifests sequentially.
 
 Manifests tree:
 ```
@@ -185,34 +183,58 @@ examples/default-ingress/
 └── 4_app.yaml
 ```
 
+Navigate to the example directory:
+
 ```bash
-# Be located at the default-ingress folder
+cd examples/default-ingress/
+```
+
+Create the **Cluster User Defined Network** resource:
+```bash
 oc apply -f 1_cudn.yaml
+```
 
-oc apply -f 2_namespaces.yaml
+Create the namespace **net-demo-ingress**:
+```bash
+oc apply -f 2_namespace.yaml
+```
 
+Create the **Admin Network Policy** 
+```bash
 oc apply -f 3_netpol.yaml
+```
 
+Create the app and publish it with a service and a Route. 
+```bash
 oc apply -f 4_app.yaml
 ```
 
-Once installed, we can check if the app is being served with TLS edge termination: 
+Once the application is running, verify that it is being served correctly with TLS Edge Termination via the standard OpenShift Route.
 
 ```bash
-curl -s -m 1 \
+# Test the route using curl
+curl -s -m 2 \
   https://$(oc get route \
-      -n net-demo-ingress hello-openshift \
-      -ojsonpath='{.spec.host}')
+    -n net-demo-ingress hello \
+    -ojsonpath='{.spec.host}')
 ```
 
-And it will result in the following output
- 
+**Expected Output**: 
 ```
 Served via a default Ingress Controller in the default network!
 ```
 
-We observe that the pod has an ovn-udn1 interface with an IP given within the range 172.11.0.0/16 as specified in the CUDN CRD
+When inspecting the Pod’s network status, you will notice two interfaces. The `ovn-udn1` interface acts as the primary interface for the CUDN, using the IP range specified in your CRD (`172.11.0.0/16`). The annotation `k8s.v1.cni.cncf.io/network-status` contains this information. We can retrieve it with the following command: 
 
+```bash
+oc get pod \
+  -n net-demo-ingress \
+  -l app=hello-openshift \
+  -o jsonpath='{.items[0].status.annotations.k8s\.v1\.cni\.cncf\.io/network-status}' \
+  | jq
+```
+
+Interface Metadata (output):
 ```json
 [
   {
@@ -236,34 +258,37 @@ We observe that the pod has an ovn-udn1 interface with an IP given within the ra
   }
 ]
 ```
-Also, we can check, that we cannot access the CUDN open ports from the default network, but it's possible to access from the default ingress contoller pods
+This setup ensures that while the Ingress Controller can reach the application, unauthorized traffic from the default network is blocked.
 
+Capture the Target IP:
 ```bash
 # Retrieve the pod IP
-POD_IP_DEFAULT_NETWORK=$(oc get pod --selector app=hello-openshift -ojsonpath="{.items[0].status.podIP}")
+POD_IP_DEFAULT_NETWORK=$(oc get pod \
+  --selector app=hello-openshift \
+  -ojsonpath="{.items[0].status.podIP}")
 
-# It should return an IP within the Pod default overlay network.
 echo $POD_IP_DEFAULT_NETWORK
+```
 
-# From the default ingress controller the traffic is allowed
-POD_INGRESS_CONTROLLER_DEFAULT=$(oc get pod \
+**Test Authorized Access (Ingress Controller)**. The Ingress Controller resides in the `openshift-ingress` namespace. Traffic from here should be permitted:
+```bash
+INGRESS_POD=$(oc get pod \
     -n openshift-ingress \
     --selector ingresscontroller.operator.openshift.io/deployment-ingresscontroller=default \
     -ojsonpath='{.items[0].metadata.name}')
 
-oc exec \
-    -n openshift-ingress \
-    $POD_INGRESS_CONTROLLER_DEFAULT \
+oc exec -n openshift-ingress $INGRESS_POD \
     -- curl -m 2 -s http://$POD_IP_DEFAULT_NETWORK:8080
-
-# Not possible to access the app port 8080 via the default network IP from the CUDN
-oc debug -n net-demo-ingress -- curl -m 2 -s http://$POD_IP_DEFAULT_NETWORK:8080
-
-# Not possilbe to access the app port 8080 via the default network IP form the default network
-oc debug -n default -- curl -m 2 -s http://$POD_IP_DEFAULT_NETWORK:8080
 ```
 
+**Test Unauthorized Access (Default Network)**. Attempts to reach the Pod IP directly from other namespaces in the default network should time out, demonstrating the isolation provided by the CUDN.
+```bash
+# 1. Attempt from the same namespace (but via default network IP)
+oc debug -n net-demo-ingress -- curl -m 2 -s http://$POD_IP_DEFAULT_NETWORK:8080
 
+# 2. Attempt from a different namespace (default)
+oc debug -n default -- curl -m 2 -s http://$POD_IP_DEFAULT_NETWORK:8080
+```
 
 ## diagram – Default Ingress Controller
 
