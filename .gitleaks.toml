@@ -2,6 +2,6 @@
   description = "Global Allowlist"
   
   paths = [
-    '^isolated/ca',
-    '^isolated/cert-'
+    'isolated/ca',
+    'isolated/cert-'
   ]
